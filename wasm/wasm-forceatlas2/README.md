@@ -1,5 +1,8 @@
 <div align="center">
 
+  Important: Only supports nightly. It is currently set with the following command: https://github.com/wasm-tool/wasm-pack-plugin/issues/95#issuecomment-778031088
+
+
   <h1><code>wasm-pack-template</code></h1>
 
   <strong>A template for kick starting a Rust and WebAssembly project using <a href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>.</strong>
