@@ -2,6 +2,7 @@
   "name": "wasm-parent",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "wasm/wasmpack-test/pkg"
   ]
 }

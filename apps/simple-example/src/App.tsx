@@ -1,4 +1,5 @@
 import * as test from 'test'
+import {greet} from 'wasmpack-test'
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
@@ -10,7 +11,6 @@ import './App.css'
 function App() {
   const [count, setCount] = useState(0)
 
-  console.log(test)
 
   return (
     <div className="App">
@@ -31,9 +31,9 @@ function App() {
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <div>
+        <button onClick={() => {greet()}}>Clickme!</button>
+      </div>
     </div>
   )
 }
