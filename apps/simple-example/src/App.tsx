@@ -1,5 +1,5 @@
 import * as test from 'test'
-import {greet} from 'wasmpack-test'
+import * as wasmForceatlas2 from 'wasm-forceatlas2'
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
@@ -32,7 +32,7 @@ function App() {
         </p>
       </div>
       <div>
-        <button onClick={() => {greet()}}>Clickme!</button>
+        <button onClick={() => {wasmForceatlas2.greet()}}>Clickme!</button>
       </div>
     </div>
   )

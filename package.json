@@ -3,6 +3,6 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "wasm/wasmpack-test/pkg"
+    "wasm/**/pkg"
   ]
 }
