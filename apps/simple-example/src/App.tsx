@@ -11,6 +11,7 @@ import './App.css'
 function App() {
   const [count, setCount] = useState(0)
 
+  const resp = wasmForceatlas2.generate_layout([1,2,3,4,5], null);
 
   return (
     <div className="App">
@@ -34,6 +35,7 @@ function App() {
       <div>
         <button onClick={() => {wasmForceatlas2.greet()}}>Clickme!</button>
       </div>
+      <pre>{JSON.stringify(resp, null, 2)}</pre>
     </div>
   )
 }
