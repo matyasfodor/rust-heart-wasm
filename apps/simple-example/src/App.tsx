@@ -108,9 +108,9 @@ function App() {
 
   const [useWasm, setUseWasm] = useState(true);
 
-  const [params, setParams] = useState<MinimalGraph | null>(
-    getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0))
-  );
+  const [params, setParams] = useState<MinimalGraph | null>(null);
+
+  const [metric, setMetric] = useState<number | null>(null);
 
   useEffect(() => {
     if (params) {
@@ -119,6 +119,7 @@ function App() {
       if (useWasm) {
         console.log("Using wasm-implementation");
 
+        const startTime = performance.now();
         const resp = wasmForceatlas2.generate_layout({
           ...params,
           iterations: 100,
@@ -135,6 +136,9 @@ function App() {
             strong_gravity: false,
           },
         });
+        const endTime = performance.now();
+        setMetric(endTime - startTime);
+
         const parsedResponse: number[][] = JSON.parse(resp);
         parsedResponse.forEach((coords, i) => {
           graph.addNode(i, {
@@ -163,15 +167,18 @@ function App() {
         }
 
         randomLayout.assign(graph, { rng: random });
+        const startTime = performance.now();
         forceAtlas2.assign(graph, {
           iterations: 100,
           settings: { gravity: 10 },
         });
+        const endTime = performance.now();
+        setMetric(endTime - startTime);
       }
 
       setGraph(graph);
     }
-  }, [params, useWasm]);
+  }, [params]);
 
   const handleOnClick = () => {
     setParams(
@@ -232,6 +239,7 @@ function App() {
             graph={graph}
           />
         )}
+        {metric !== null && <p>It took {metric} ms to compute</p>}
       </div>
     </div>
   );

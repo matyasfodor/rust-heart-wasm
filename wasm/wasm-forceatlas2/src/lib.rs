@@ -108,8 +108,8 @@ pub fn generate_layout(parameters: JsValue) -> String {
         None,
         Settings {
             // ..parsed_parameters.settings,
-            // #[cfg(feature = "barnes_hut")]
-            // barnes_hut: None,
+            #[cfg(feature = "barnes_hut")]
+            barnes_hut: None,
 
             // ..parsed_parameters.settings
 
