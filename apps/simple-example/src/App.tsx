@@ -1,6 +1,6 @@
 import * as wasmForceatlas2 from "wasm-forceatlas2";
-import forceAtlas2 from 'graphology-layout-forceatlas2';
-import randomLayout from 'graphology-layout/random';
+import forceAtlas2 from "graphology-layout-forceatlas2";
+import randomLayout from "graphology-layout/random";
 
 import { useEffect, useState } from "react";
 import "./App.css";
@@ -50,9 +50,9 @@ function unorderedPairs<T>(s: T[]): T[][] {
 const range = (n: number): number[] => [...Array(n).keys()];
 
 type MinimalGraph = {
-  edges: number[][]; nodes: number;
-}
-
+  edges: number[][];
+  nodes: number;
+};
 
 /**
  * get a random set of links of length l between n nodes
@@ -62,19 +62,27 @@ type MinimalGraph = {
  * @param random injected random function to seed the algorithm
  * @returns list of links
  */
-const getRandomGraph = (n: number, l: number, random: () => number): MinimalGraph => {
+const getRandomGraph = (
+  n: number,
+  l: number,
+  random: () => number
+): MinimalGraph => {
   return {
     edges: randomChoose(unorderedPairs(range(n)), l, random),
     nodes: n,
-  }
+  };
 };
 
-const getRandomGraphWrapper = (n: number | null, l: number | null, random: () => number): MinimalGraph | null => {
+const getRandomGraphWrapper = (
+  n: number | null,
+  l: number | null,
+  random: () => number
+): MinimalGraph | null => {
   if (n && l) {
     return getRandomGraph(n, l, random);
   }
   return null;
-}
+};
 
 function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
   const [debouncedValue, setDebouncedValue] = useState<U>(callback(value));
@@ -91,25 +99,42 @@ function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
   return debouncedValue;
 }
 
-function App() {  
+function App() {
   const [numberOfNodes, setNumberOfNodes] = useState<number | null>(32);
   const [numberOfEdges, setNumberOfEdges] = useState<number | null>(10);
-  const [seed, setSeed] = useState<number| null>(0);
+  const [seed, setSeed] = useState<number | null>(0);
 
   const [graph, setGraph] = useState<null | Graph>(null);
 
   const [useWasm, setUseWasm] = useState(true);
 
-  const [params, setParams] = useState<MinimalGraph| null>(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)))
+  const [params, setParams] = useState<MinimalGraph | null>(
+    getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0))
+  );
 
   useEffect(() => {
     if (params) {
       const graph = new Graph();
 
       if (useWasm) {
-        console.log('Using wasm-implementation');
+        console.log("Using wasm-implementation");
 
-        const resp = wasmForceatlas2.generate_layout(params);
+        const resp = wasmForceatlas2.generate_layout({
+          ...params,
+          iterations: 100,
+          settings: {
+            chunk_size: null,
+            dimensions: 2,
+            dissuade_hubs: false,
+            ka: 0.01,
+            kg: 0.001,
+            kr: 0.002,
+            lin_log: false,
+            speed: 1.0,
+            prevent_overlapping: null,
+            strong_gravity: false,
+          },
+        });
         const parsedResponse: number[][] = JSON.parse(resp);
         parsedResponse.forEach((coords, i) => {
           graph.addNode(i, {
@@ -119,12 +144,12 @@ function App() {
             size: 10,
           });
         });
-  
+
         params.edges.forEach(([from, to]) => {
           graph.addEdge(from, to);
         });
       } else {
-        console.log('Using js-implementation');
+        console.log("Using js-implementation");
         const random = getRandom(seed ?? 0);
         for (let i = 0; i < params.nodes; i++) {
           graph.addNode(i, {
@@ -137,8 +162,11 @@ function App() {
           graph.addEdge(a, b);
         }
 
-        randomLayout.assign(graph, {rng: random});
-        forceAtlas2.assign(graph, {iterations: 100, settings: {gravity: 10}});
+        randomLayout.assign(graph, { rng: random });
+        forceAtlas2.assign(graph, {
+          iterations: 100,
+          settings: { gravity: 10 },
+        });
       }
 
       setGraph(graph);
@@ -146,8 +174,10 @@ function App() {
   }, [params, useWasm]);
 
   const handleOnClick = () => {
-    setParams(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)));
-  }
+    setParams(
+      getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0))
+    );
+  };
 
   return (
     <div className="App">
@@ -157,25 +187,42 @@ function App() {
         <input
           type="number"
           name="numberOfNodes"
-          onChange={(e) => setNumberOfNodes(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
-          value={numberOfNodes ?? ''}
+          onChange={(e) =>
+            setNumberOfNodes(
+              !isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null
+            )
+          }
+          value={numberOfNodes ?? ""}
         />
         <label htmlFor="numberOfEdges">Number of edges:</label>
         <input
           type="number"
           name="numberOfEdges"
-          onChange={(e) => setNumberOfEdges(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
-          value={numberOfEdges ?? ''}
+          onChange={(e) =>
+            setNumberOfEdges(
+              !isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null
+            )
+          }
+          value={numberOfEdges ?? ""}
         />
         <label htmlFor="seed">Seed:</label>
         <input
           type="number"
           name="seed"
-          onChange={(e) => setSeed(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
-          value={seed ?? ''}
+          onChange={(e) =>
+            setSeed(
+              !isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null
+            )
+          }
+          value={seed ?? ""}
         />
         <label htmlFor="useWasm">Use wasm</label>
-        <input name="useWasm" type="checkbox" checked={useWasm} onChange={(e) => setUseWasm(e.target.checked)}/>
+        <input
+          name="useWasm"
+          type="checkbox"
+          checked={useWasm}
+          onChange={(e) => setUseWasm(e.target.checked)}
+        />
         <button onClick={() => handleOnClick()}>Render</button>
       </div>
       <div>
