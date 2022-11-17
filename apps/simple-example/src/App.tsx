@@ -1,17 +1,62 @@
-import * as test from 'test'
 import * as wasmForceatlas2 from 'wasm-forceatlas2'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
 
+function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
+  const [debouncedValue, setDebouncedValue] = useState<U>(callback(value))
 
-// @ts-ignore
-// const reverseJoin = (...args) => args;
-// const moduleA = require('test')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(callback(value)), delay || 500)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [value, delay])
+  return debouncedValue
+}
+
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [inputValue, setInputValue] = useState<string>("");
 
-  const resp = wasmForceatlas2.generate_layout([1,2,3,4,5], null);
+  const params = useDebounce(inputValue, (inputVal): null | {edges: number[][], nodes: number} => {
+    try {
+      const edges: number[][] = JSON.parse(inputVal);
+      let nodes = 0;
+      edges.forEach((pair: number[]) => {
+        if (!Array.isArray(pair) || pair.length !== 2) {
+          throw new Error("Invalid pair");
+        }
+        pair.forEach((number: number) => {
+          if (number > nodes) {
+            nodes = number;
+          }
+        });
+      });
+
+      nodes += 1;
+
+      return {
+        edges,
+        nodes,
+      }
+    } catch (e) {
+      console.log('Error parsing');
+      return null;
+    }
+  });
+
+  const [response, setResponse] = useState<unknown | null>(null)
+
+
+  useEffect(() => {
+    if (params) {
+      const resp = wasmForceatlas2.generate_layout(params);
+      setResponse(JSON.parse(resp));
+    }
+
+  }, [params])
+
 
   return (
     <div className="App">
@@ -25,17 +70,9 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count} {test.reverseJoin(1,2,3)}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+        <input onChange={(e) => setInputValue(e.target.value)} value={inputValue}/>
+        <pre>{JSON.stringify(response, null, 2)}</pre>
       </div>
-      <div>
-        <button onClick={() => {wasmForceatlas2.greet()}}>Clickme!</button>
-      </div>
-      <pre>{JSON.stringify(resp, null, 2)}</pre>
     </div>
   )
 }
