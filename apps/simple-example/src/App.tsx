@@ -66,6 +66,13 @@ const getRandomGraph = (n: number, l: number, random: () => number): MinimalGrap
   }
 };
 
+const getRandomGraphWrapper = (n: number | null, l: number | null, random: () => number): MinimalGraph | null => {
+  if (n && l) {
+    return getRandomGraph(n, l, random);
+  }
+  return null;
+}
+
 function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
   const [debouncedValue, setDebouncedValue] = useState<U>(callback(value));
 
@@ -82,13 +89,14 @@ function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
 }
 
 function App() {
-  const [inputValue, setInputValue] = useState<string>("");
-  const [graph, setGraph] = useState<null | Graph>(null);
-  const [seed, setSeed] = useState(0);
-  const [numberOfNodes, setNumberOfNodes] = useState<number>(32);
-  const [numberOfEdges, setNumberOfEdges] = useState<number>(10);
 
-  const [params, setParams] = useState<MinimalGraph>(getRandomGraph(numberOfNodes, numberOfEdges, getRandom(seed)))
+  
+  const [graph, setGraph] = useState<null | Graph>(null);
+  const [numberOfNodes, setNumberOfNodes] = useState<number | null>(32);
+  const [numberOfEdges, setNumberOfEdges] = useState<number | null>(10);
+  const [seed, setSeed] = useState<number| null>(0);
+
+  const [params, setParams] = useState<MinimalGraph| null>(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)))
 
   useEffect(() => {
     if (params) {
@@ -114,22 +122,36 @@ function App() {
     }
   }, [params]);
 
+  const handleOnClick = () => {
+    setParams(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)));
+  }
+
   return (
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+      <h1>Graph generator</h1>
       <div className="card">
+        <label htmlFor="numberOfNodes">Number fo nodes:</label>
         <input
-          onChange={(e) => setInputValue(e.target.value)}
-          value={inputValue}
+          type="number"
+          name="numberOfNodes"
+          onChange={(e) => setNumberOfNodes(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
+          value={numberOfNodes ?? ''}
         />
+        <label htmlFor="numberOfEdges">Number of edges:</label>
+        <input
+          type="number"
+          name="numberOfEdges"
+          onChange={(e) => setNumberOfEdges(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
+          value={numberOfEdges ?? ''}
+        />
+        <label htmlFor="seed">Seed:</label>
+        <input
+          type="number"
+          name="seed"
+          onChange={(e) => setSeed(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
+          value={seed ?? ''}
+        />
+        <button onClick={() => handleOnClick()}>Render</button>
       </div>
       <div>
         {graph && (
