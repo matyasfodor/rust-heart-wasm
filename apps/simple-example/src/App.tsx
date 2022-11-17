@@ -1,6 +1,8 @@
 import * as wasmForceatlas2 from "wasm-forceatlas2";
+import forceAtlas2 from 'graphology-layout-forceatlas2';
+import randomLayout from 'graphology-layout/random';
+
 import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
 import "./App.css";
 import Graph from "graphology";
 import { SigmaContainer } from "@react-sigma/core";
@@ -54,6 +56,7 @@ type MinimalGraph = {
 
 /**
  * get a random set of links of length l between n nodes
+ * Inspired from: http://bl.ocks.org/erkal/9746513
  * @param n number of nodes
  * @param l number of links
  * @param random injected random function to seed the algorithm
@@ -88,39 +91,59 @@ function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
   return debouncedValue;
 }
 
-function App() {
-
-  
-  const [graph, setGraph] = useState<null | Graph>(null);
+function App() {  
   const [numberOfNodes, setNumberOfNodes] = useState<number | null>(32);
   const [numberOfEdges, setNumberOfEdges] = useState<number | null>(10);
   const [seed, setSeed] = useState<number| null>(0);
+
+  const [graph, setGraph] = useState<null | Graph>(null);
+
+  const [useWasm, setUseWasm] = useState(true);
 
   const [params, setParams] = useState<MinimalGraph| null>(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)))
 
   useEffect(() => {
     if (params) {
-      const resp = wasmForceatlas2.generate_layout(params);
-      const parsedResponse: number[][] = JSON.parse(resp);
-
       const graph = new Graph();
 
-      parsedResponse.forEach((coords, i) => {
-        graph.addNode(i, {
-          x: coords[0],
-          y: coords[1],
-          label: `Node ${i}`,
-          size: 10,
-        });
-      });
+      if (useWasm) {
+        console.log('Using wasm-implementation');
 
-      params.edges.forEach(([from, to]) => {
-        graph.addEdge(from, to);
-      });
+        const resp = wasmForceatlas2.generate_layout(params);
+        const parsedResponse: number[][] = JSON.parse(resp);
+        parsedResponse.forEach((coords, i) => {
+          graph.addNode(i, {
+            x: coords[0],
+            y: coords[1],
+            label: `Node ${i}`,
+            size: 10,
+          });
+        });
+  
+        params.edges.forEach(([from, to]) => {
+          graph.addEdge(from, to);
+        });
+      } else {
+        console.log('Using js-implementation');
+        const random = getRandom(seed ?? 0);
+        for (let i = 0; i < params.nodes; i++) {
+          graph.addNode(i, {
+            label: `Node ${i}`,
+            size: 10,
+          });
+        }
+
+        for (const [a, b] of params.edges) {
+          graph.addEdge(a, b);
+        }
+
+        randomLayout.assign(graph, {rng: random});
+        forceAtlas2.assign(graph, {iterations: 100, settings: {gravity: 10}});
+      }
 
       setGraph(graph);
     }
-  }, [params]);
+  }, [params, useWasm]);
 
   const handleOnClick = () => {
     setParams(getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0)));
@@ -151,6 +174,8 @@ function App() {
           onChange={(e) => setSeed(!isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null)}
           value={seed ?? ''}
         />
+        <label htmlFor="useWasm">Use wasm</label>
+        <input name="useWasm" type="checkbox" checked={useWasm} onChange={(e) => setUseWasm(e.target.checked)}/>
         <button onClick={() => handleOnClick()}>Render</button>
       </div>
       <div>
