@@ -2,6 +2,9 @@ import * as wasmForceatlas2 from 'wasm-forceatlas2'
 import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
+import Graph from "graphology";
+import { SigmaContainer } from "@react-sigma/core";
+
 
 function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
   const [debouncedValue, setDebouncedValue] = useState<U>(callback(value))
@@ -18,6 +21,7 @@ function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
 
 function App() {
   const [inputValue, setInputValue] = useState<string>("");
+  const [graph, setGraph] = useState<null | Graph>(null);
 
   const params = useDebounce(inputValue, (inputVal): null | {edges: number[][], nodes: number} => {
     try {
@@ -46,6 +50,15 @@ function App() {
     }
   });
 
+  useEffect(() => {
+    const graph = new Graph();
+    graph.addNode("A", { x: 0, y: 0, label: "Node A", size: 10 });
+    graph.addNode("B", { x: .5, y: .5, label: "Node B", size: 10 });
+    graph.addEdge("A", "B");
+
+    setGraph(graph);
+  }, []);
+
   const [response, setResponse] = useState<unknown | null>(null)
 
 
@@ -72,6 +85,9 @@ function App() {
       <div className="card">
         <input onChange={(e) => setInputValue(e.target.value)} value={inputValue}/>
         <pre>{JSON.stringify(response, null, 2)}</pre>
+      </div>
+      <div>
+        {graph && <SigmaContainer style={{ height: "500px", width: "500px", position: "relative" }} graph={graph}/>}
       </div>
     </div>
   )
