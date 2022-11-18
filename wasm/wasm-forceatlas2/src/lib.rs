@@ -93,7 +93,7 @@ pub struct SimpleSettings<T: Coord> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateLayoutParameters {
     pub edges: Vec<(usize, usize)>,
-    pub nodes: usize,
+    pub nodes: Vec<(f32, f32)>,
     pub iterations: usize,
     pub settings: SimpleSettings<f32>,
 }
@@ -102,9 +102,12 @@ pub fn generate_layout(parameters: JsValue) -> String {
     utils::set_panic_hook();
     let parsed_parameters = serde_wasm_bindgen::from_value::<GenerateLayoutParameters>(parameters).expect("Failed to parse parameters");
 
-    let mut layout = Layout::<f32>::from_graph(
+    let positions = parsed_parameters.nodes.iter().map(|(n1, n2)| vec![*n1, *n2]).flatten().collect();
+
+    let mut layout = Layout::<f32>::from_position_graph(
         parsed_parameters.edges,
-        Nodes::Degree(parsed_parameters.nodes),
+        Nodes::Degree(parsed_parameters.nodes.len()),
+        positions,
         None,
         Settings {
             // ..parsed_parameters.settings,

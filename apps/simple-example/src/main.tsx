@@ -4,6 +4,7 @@ import Demo from './Demo'
 import './index.css'
 import "@react-sigma/core/lib/react-sigma.min.css"
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import Comparison from './Comparison'
 
 const router = createBrowserRouter([{
   path: "/",
@@ -18,6 +19,10 @@ const router = createBrowserRouter([{
     path: "/demo",
     element: <Demo />,
   },
+  {
+    path: "/comparison",
+    element: <Comparison/>
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
