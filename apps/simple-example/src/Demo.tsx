@@ -3,7 +3,7 @@ import forceAtlas2 from "graphology-layout-forceatlas2";
 import randomLayout from "graphology-layout/random";
 
 import { useEffect, useState } from "react";
-import "./App.css";
+import "./Demo.css";
 import Graph from "graphology";
 import { SigmaContainer } from "@react-sigma/core";
 
@@ -84,22 +84,14 @@ const getRandomGraphWrapper = (
   return null;
 };
 
-function useDebounce<T, U>(value: T, callback: (a: T) => U, delay?: number): U {
-  const [debouncedValue, setDebouncedValue] = useState<U>(callback(value));
+const measureCallbackTime = <T,>(fn: () => T): [T, number] => {
+  const startTime = performance.now();
+  const resp = fn();
+  const endTime = performance.now();
+  return [resp, endTime - startTime];
+};
 
-  useEffect(() => {
-    const timer = setTimeout(
-      () => setDebouncedValue(callback(value)),
-      delay || 500
-    );
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delay]);
-  return debouncedValue;
-}
-
-function App() {
+function Demo() {
   const [numberOfNodes, setNumberOfNodes] = useState<number | null>(32);
   const [numberOfEdges, setNumberOfEdges] = useState<number | null>(10);
   const [seed, setSeed] = useState<number | null>(0);
@@ -111,33 +103,32 @@ function App() {
   const [params, setParams] = useState<MinimalGraph | null>(null);
 
   const [metric, setMetric] = useState<number | null>(null);
+  const iterations = 500;
 
   useEffect(() => {
     if (params) {
       const graph = new Graph();
 
       if (useWasm) {
-        console.log("Using wasm-implementation");
-
-        const startTime = performance.now();
-        const resp = wasmForceatlas2.generate_layout({
-          ...params,
-          iterations: 100,
-          settings: {
-            chunk_size: null,
-            dimensions: 2,
-            dissuade_hubs: false,
-            ka: 0.01,
-            kg: 0.001,
-            kr: 0.002,
-            lin_log: false,
-            speed: 1.0,
-            prevent_overlapping: null,
-            strong_gravity: false,
-          },
-        });
-        const endTime = performance.now();
-        setMetric(endTime - startTime);
+        const [resp, elapsedTime] = measureCallbackTime(() =>
+          wasmForceatlas2.generate_layout({
+            ...params,
+            iterations,
+            settings: {
+              chunk_size: null,
+              dimensions: 2,
+              dissuade_hubs: false,
+              ka: 0.01,
+              kg: 0.001,
+              kr: 0.002,
+              lin_log: false,
+              speed: 1.0,
+              prevent_overlapping: null,
+              strong_gravity: false,
+            },
+          })
+        );
+        setMetric(elapsedTime);
 
         const parsedResponse: number[][] = JSON.parse(resp);
         parsedResponse.forEach((coords, i) => {
@@ -153,7 +144,6 @@ function App() {
           graph.addEdge(from, to);
         });
       } else {
-        console.log("Using js-implementation");
         const random = getRandom(seed ?? 0);
         for (let i = 0; i < params.nodes; i++) {
           graph.addNode(i, {
@@ -167,13 +157,36 @@ function App() {
         }
 
         randomLayout.assign(graph, { rng: random });
-        const startTime = performance.now();
-        forceAtlas2.assign(graph, {
-          iterations: 100,
-          settings: { gravity: 10 },
+
+        const [coordinates, elapsedTime] = measureCallbackTime(() => 
+          forceAtlas2(graph, iterations)
+          // forceAtlas2.assign(graph, iterations)
+        );
+        setMetric(elapsedTime);
+        // console.log(coordinates);
+        // for (const node of graph.nodeEntries()) {
+        //   // node.attributes['x']
+        //   // console.log('Node', node);
+        //   node.attributes = {
+        //     ...node.attributes,
+        //     ...coordinates[node.node],
+        //   };
+        //   // console.log(node);
+        // }
+        // graph.forEachNode((node, attributes) => {
+        //   // console.log("Node", node, attributes, coordinates[node].x, coordinates[node].y);
+        //   // attributes.x = coordinates[node].x;
+        //   // attributes.y = coordinates[node].y;
+        //   graph.updateNodeAttributes(node, )
+        // });
+
+        graph.updateEachNodeAttributes((node, attributes) => {
+          return {
+            ...attributes,
+            ...coordinates[node],
+          }
         });
-        const endTime = performance.now();
-        setMetric(endTime - startTime);
+
       }
 
       setGraph(graph);
@@ -188,9 +201,9 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Graph generator</h1>
+      <h1>Graph generator demo</h1>
       <div className="card">
-        <label htmlFor="numberOfNodes">Number fo nodes:</label>
+        <label htmlFor="numberOfNodes">Number of nodes:</label>
         <input
           type="number"
           name="numberOfNodes"
@@ -205,6 +218,7 @@ function App() {
         <input
           type="number"
           name="numberOfEdges"
+          max={numberOfNodes ? ((numberOfNodes* (numberOfNodes-1) / 2)) : 10000}
           onChange={(e) =>
             setNumberOfEdges(
               !isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null
@@ -245,4 +259,4 @@ function App() {
   );
 }
 
-export default App;
+export default Demo;
