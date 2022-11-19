@@ -26,7 +26,7 @@ function Demo() {
     if (params) {
       const graph = new Graph();
       const random = getRandom(seed ?? 0);
-      for (let i = 0; i < params.nodes; i++) {
+      for (let i = 0; i < params.order; i++) {
         graph.addNode(i, {
           label: `Node ${i}`,
           size: 10,
@@ -38,12 +38,12 @@ function Demo() {
       }
 
       randomLayout.assign(graph, { rng: random });
-
+      const nodes = Array.from(graph.nodeEntries()).map(({attributes}) => [attributes.x, attributes.y]);
       if (useWasm) {
         const [resp, elapsedTime] = measureCallbackTime(() =>
           wasmForceatlas2.generate_layout({
-            ...params,
-            nodes: Array.from(graph.nodeEntries()).map(({attributes}) => [attributes.x, attributes.y]),
+            edges: params.edges,
+            nodes,
             iterations,
             settings: {
               chunk_size: null,
@@ -72,18 +72,7 @@ function Demo() {
             y
           }
         });
-        // parsedResponse.forEach((coords, i) => {
-        //   graph.addNode(i, {
-        //     x: coords[0],
-        //     y: coords[1],
-        //     label: `Node ${i}`,
-        //     size: 10,
-        //   });
-        // });
 
-        // params.edges.forEach(([from, to]) => {
-        //   graph.addEdge(from, to);
-        // });
       } else {
         const [coordinates, elapsedTime] = measureCallbackTime(() => 
           forceAtlas2(graph, iterations)

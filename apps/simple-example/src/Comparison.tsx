@@ -6,9 +6,15 @@ import { useEffect, useState } from "react";
 import "./Demo.css";
 import Graph from "graphology";
 import { SigmaContainer } from "@react-sigma/core";
-import { getRandom, getRandomGraphWrapper, measureCallbackTime, MinimalGraph } from "./utils";
+import {
+  getRandom,
+  getRandomGraphWrapper,
+  getStats,
+  measureCallbackTime,
+} from "./utils";
 
-function Demo() {
+
+function Comparison() {
   const [numberOfNodes, setNumberOfNodes] = useState<number | null>(32);
   const [numberOfEdges, setNumberOfEdges] = useState<number | null>(10);
   const [seed, setSeed] = useState<number | null>(0);
@@ -17,17 +23,19 @@ function Demo() {
   const [clearIntervalToken, setClearIntervalToken] = useState<number>();
 
   const [wasmGraph, setWasmGraph] = useState<null | Graph>(null);
-  const [nativeGraph, setWasmGraphsetNativeGraph] = useState<null | Graph>(null);
+  const [nativeGraph, setNativeGraph] = useState<null | Graph>(null);
 
-  const [useWasm, setUseWasm] = useState(true);
+  const [wasmMetric, setWasmMetric] = useState<number[]>([]);
+  const [nativeMetric, setNativeMetric] = useState<number[]>([]);
 
-  const [params, setParams] = useState<MinimalGraph | null>(null);
-
-  const [metric, setMetric] = useState<number | null>(null);
-  const iterations = 1;
+  const iterations = 100;
 
   useEffect(() => {
-    const params = getRandomGraphWrapper(numberOfNodes, numberOfEdges, getRandom(seed ?? 0));
+    const params = getRandomGraphWrapper(
+      numberOfNodes,
+      numberOfEdges,
+      getRandom(seed ?? 0)
+    );
 
     const graph = new Graph();
 
@@ -36,7 +44,7 @@ function Demo() {
     }
 
     const random = getRandom(seed ?? 0);
-    for (let i = 0; i < params.nodes; i++) {
+    for (let i = 0; i < params.order; i++) {
       graph.addNode(i, {
         label: `Node ${i}`,
         size: 10,
@@ -49,24 +57,70 @@ function Demo() {
 
     randomLayout.assign(graph, { rng: random });
 
-
-  const nativeGraph = graph.copy();
-  const wasmGraph = graph.copy();
+    const nativeGraph = graph.copy();
+    const wasmGraph = graph.copy();
 
     if (running) {
       const clearIntervalToken = setInterval(() => {
-
         // handle wasm
-        // nativeGraph.nodeEntries();
-        const nodes = nativeGraph.size;
-        const edges = Array.from(nativeGraph.edgeEntries()).map((edge) => [edge.source, edge.target]);
-        // const minimalGraph: MinimalGraph = {
+        const nodes = Array.from(wasmGraph.nodeEntries()).map(
+          ({ attributes: { x, y } }) => [x, y]
+        );
+        const edges = Array.from(wasmGraph.edgeEntries()).map((edge) => [
+          parseInt(edge.source),
+          parseInt(edge.target),
+        ]);
 
-        // }
-        // handle native
+        const [resp, wasmElapsedTime] = measureCallbackTime(() =>
+          wasmForceatlas2.generate_layout({
+            edges,
+            nodes,
+            iterations,
+            settings: {
+              chunk_size: null,
+              dimensions: 2,
+              dissuade_hubs: false,
+              ka: 0.01,
+              kg: 0.001,
+              kr: 0.002,
+              lin_log: false,
+              speed: 1.0,
+              prevent_overlapping: null,
+              strong_gravity: false,
+            },
+          })
+        );
 
+        setWasmMetric((arr) => [...arr, wasmElapsedTime]);
 
+        const parsedResponse: number[][] = JSON.parse(resp);
 
+        wasmGraph.updateEachNodeAttributes((node, attributes) => {
+          const [x, y] = parsedResponse[parseInt(node)];
+          return {
+            ...attributes,
+            x,
+            y,
+          };
+        });
+
+        setWasmGraph(wasmGraph);
+
+        // handle native graph
+
+        const [coordinates, nativeElapsedTime] = measureCallbackTime(() =>
+          forceAtlas2(nativeGraph, iterations)
+        );
+
+        setNativeMetric((arr) => [...arr, nativeElapsedTime]);
+
+        nativeGraph.updateEachNodeAttributes((node, attributes) => {
+          return {
+            ...attributes,
+            ...coordinates[node],
+          };
+        });
+        setNativeGraph(nativeGraph);
       }, 1000);
       setClearIntervalToken(clearIntervalToken);
     } else {
@@ -74,86 +128,12 @@ function Demo() {
     }
   }, [running]);
 
-  // useEffect(() => {
-  //   if (params) {
-      
-  //   }
-  // }, [params]);
-
-  // useEffect(() => {
-  //   if (params) {
-  //     const graph = new Graph();
-
-  //     if (useWasm) {
-  //       const [resp, elapsedTime] = measureCallbackTime(() =>
-  //         wasmForceatlas2.generate_layout({
-  //           ...params,
-  //           iterations,
-  //           settings: {
-  //             chunk_size: null,
-  //             dimensions: 2,
-  //             dissuade_hubs: false,
-  //             ka: 0.01,
-  //             kg: 0.001,
-  //             kr: 0.002,
-  //             lin_log: false,
-  //             speed: 1.0,
-  //             prevent_overlapping: null,
-  //             strong_gravity: false,
-  //           },
-  //         })
-  //       );
-  //       setMetric(elapsedTime);
-
-  //       const parsedResponse: number[][] = JSON.parse(resp);
-  //       parsedResponse.forEach((coords, i) => {
-  //         graph.addNode(i, {
-  //           x: coords[0],
-  //           y: coords[1],
-  //           label: `Node ${i}`,
-  //           size: 10,
-  //         });
-  //       });
-
-  //       params.edges.forEach(([from, to]) => {
-  //         graph.addEdge(from, to);
-  //       });
-  //     } else {
-  //       const random = getRandom(seed ?? 0);
-  //       for (let i = 0; i < params.nodes; i++) {
-  //         graph.addNode(i, {
-  //           label: `Node ${i}`,
-  //           size: 10,
-  //         });
-  //       }
-
-  //       for (const [a, b] of params.edges) {
-  //         graph.addEdge(a, b);
-  //       }
-
-  //       randomLayout.assign(graph, { rng: random });
-
-  //       const [coordinates, elapsedTime] = measureCallbackTime(() => 
-  //         forceAtlas2(graph, iterations)
-  //       );
-  //       setMetric(elapsedTime);
-
-  //       graph.updateEachNodeAttributes((node, attributes) => {
-  //         return {
-  //           ...attributes,
-  //           ...coordinates[node],
-  //         }
-  //       });
-
-  //     }
-
-  //     setWasmGraph(graph);
-  //   }
-  // }, [params]);
-
   const handleOnClick = () => {
     setRunning((current) => !current);
   };
+
+  const wasmStats = getStats(wasmMetric);
+  const nativeStats = getStats(nativeMetric);
 
   return (
     <div className="App">
@@ -174,7 +154,9 @@ function Demo() {
         <input
           type="number"
           name="numberOfEdges"
-          max={numberOfNodes ? ((numberOfNodes* (numberOfNodes-1) / 2)) : 10000}
+          max={
+            numberOfNodes ? (numberOfNodes * (numberOfNodes - 1)) / 2 : 10000
+          }
           onChange={(e) =>
             setNumberOfEdges(
               !isNaN(e.target.valueAsNumber) ? e.target.valueAsNumber : null
@@ -194,7 +176,9 @@ function Demo() {
           value={seed ?? ""}
         />
         <label htmlFor="useWasm">Use wasm</label>
-        <button onClick={() => handleOnClick()}>{running ? 'Stop': 'Start'}</button>
+        <button onClick={() => handleOnClick()}>
+          {running ? "Stop" : "Start"}
+        </button>
       </div>
       <div>
         {wasmGraph && (
@@ -203,10 +187,19 @@ function Demo() {
             graph={wasmGraph}
           />
         )}
-        {metric !== null && <p>It took {metric} ms to compute</p>}
+        {`Wasm metrics: mean: ${wasmStats.mean} std: ${wasmStats.std} length: ${wasmStats.length} last: ${wasmStats.last}`}
+      </div>
+      <div>
+        {nativeGraph && (
+          <SigmaContainer
+            style={{ height: "500px", width: "500px", position: "relative" }}
+            graph={nativeGraph}
+          />
+        )}
+          {`Native metrics: mean: ${nativeStats.mean} std: ${nativeStats.std} length: ${nativeStats.length} last: ${nativeStats.last}`}
       </div>
     </div>
   );
 }
 
-export default Demo;
+export default Comparison;

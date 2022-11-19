@@ -42,7 +42,7 @@ const range = (n: number): number[] => [...Array(n).keys()];
 
 export type MinimalGraph = {
   edges: number[][];
-  nodes: number;
+  order: number;
 };
 
 /**
@@ -60,7 +60,7 @@ const getRandomGraph = (
 ): MinimalGraph => {
   return {
     edges: randomChoose(unorderedPairs(range(n)), l, random),
-    nodes: n,
+    order: n,
   };
 };
 
@@ -81,3 +81,24 @@ export const measureCallbackTime = <T,>(fn: () => T): [T, number] => {
   const endTime = performance.now();
   return [resp, endTime - startTime];
 };
+
+export const getStats = (arr: number[]): {mean: number, std: number, last: number | null, length: number} => {
+  const length = arr.length;
+  if (length === 0) {
+    return {
+      mean: 0,
+      std: 0,
+      last: null,
+      length
+    }
+  }
+  const mean = arr.reduce((a, b) => a + b) / length;
+  const std = Math.sqrt(arr.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / length);
+  const last = arr[arr.length-1] ?? null;
+  return {
+    mean,
+    std,
+    last,
+    length
+  };
+}
