@@ -1,7 +1,7 @@
 [package]
 name = "wasm-forceatlas2"
 version = "0.1.0"
-authors = ["Matyas Fodor <matyas.fodor@gmail.com>"]
+authors = ["Matyas Fodor https://github.com/matyasfodor"]
 edition = "2018"
 
 [lib]
