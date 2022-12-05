@@ -1,5 +1,5 @@
 import * as wasmForceatlas2 from "wasm-forceatlas2";
-import forceAtlas2 from "graphology-layout-forceatlas2";
+import forceAtlas2, { ForceAtlas2LayoutParameters } from "graphology-layout-forceatlas2";
 import randomLayout from "graphology-layout/random";
 
 import { useEffect, useState } from "react";
@@ -29,6 +29,14 @@ function Comparison() {
   const [nativeMetric, setNativeMetric] = useState<number[]>([]);
 
   const iterations = 100;
+
+  const graphParams: ForceAtlas2LayoutParameters = {
+    settings: {
+      linLogMode: false,
+      barnesHutOptimize: false,
+      strongGravityMode: false,
+    }
+  };
 
   useEffect(() => {
     const params = getRandomGraphWrapper(
@@ -83,10 +91,10 @@ function Comparison() {
               ka: 0.01,
               kg: 0.001,
               kr: 0.002,
-              lin_log: false,
+              lin_log: graphParams.settings?.linLogMode,
               speed: 1.0,
               prevent_overlapping: null,
-              strong_gravity: false,
+              strong_gravity: graphParams.settings?.strongGravityMode,
             },
           })
         );
@@ -109,7 +117,7 @@ function Comparison() {
         // handle native graph
 
         const [coordinates, nativeElapsedTime] = measureCallbackTime(() =>
-          forceAtlas2(nativeGraph, iterations)
+          forceAtlas2(nativeGraph, {...graphParams, iterations})
         );
 
         setNativeMetric((arr) => [...arr, nativeElapsedTime]);
