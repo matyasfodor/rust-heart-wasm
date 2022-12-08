@@ -1,8 +1,9 @@
 [package]
 name = "wasm-forceatlas2"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Matyas Fodor https://github.com/matyasfodor"]
 edition = "2018"
+repository = "https://github.com/rustwasm/wasm-pack-template"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
